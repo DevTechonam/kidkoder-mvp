@@ -1,12 +1,10 @@
 import sys
 import os
 import math
-import json
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QLabel, QPushButton,
     QHBoxLayout, QVBoxLayout, QStackedWidget, QFrame,
-    QGraphicsOpacityEffect, QProgressBar, QFileDialog,
-    QMessageBox
+    QGraphicsOpacityEffect, QProgressBar
 )
 from PyQt5.QtCore import (
     Qt, QPropertyAnimation, QEasingCurve, QTimer,
@@ -14,13 +12,9 @@ from PyQt5.QtCore import (
 )
 from PyQt5.QtGui import QFont, QPixmap
 
-BASE_DIR  = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-
-SAVED_IMAGES_FILE = os.path.join(BASE_DIR, "saved_images.json")
-
-IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.bmp', '.gif', '.webp', '.tiff', '.tif'}
-
+ACTIVE_TOPIC_INDICES = {0, 1,}
 
 STAGE = [
     dict(bg="#3B1F8C", side="#2D1870", title="#FFE566", ctitle="#FF94C2",
@@ -45,7 +39,6 @@ SIDEBAR_BG = "#12005E"
 BRAND_BG   = "#1E0080"
 WELCOME_BG = "#12005E"
 
-
 TOPICS = [
     {
         "name": "What is a Computer", "emoji": "💻",
@@ -69,7 +62,7 @@ TOPICS = [
              "content": "🖱️ Mouse\n\nThe mouse helps us move the pointer on the screen and click to open, select, and move things on the computer."},
         ]
     },
-    {
+{
         "name": "Files & Folders", "emoji": "📁",
         "images": [
             {"path": os.path.join(BASE_DIR, "images", "file.png"),
@@ -77,8 +70,7 @@ TOPICS = [
             {"path": os.path.join(BASE_DIR, "images", "folder.png"),
              "content": "📁 Files & Folders\n\nFiles are like documents and pictures. Folders are like containers that hold multiple files organized together!"},
         ]
-    },
-    {
+    },    {
         "name": "Operating System", "emoji": "🖥️",
         "images": [
             {"path": os.path.join(BASE_DIR, "images", "Osystem.jpg"),
@@ -120,44 +112,6 @@ TOPICS = [
 ]
 
 
-
-
-def load_saved_images() -> dict:
-    """Read the JSON file and return a dict  {topic_name: [image_dicts]}."""
-    if not os.path.exists(SAVED_IMAGES_FILE):
-        return {}
-    try:
-        with open(SAVED_IMAGES_FILE, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        # Validate — must be a dict of lists
-        if isinstance(data, dict):
-            return data
-    except Exception:
-        pass
-    return {}
-
-
-def save_images_for_topic(topic_name: str, user_images: list):
-    """
-    Persist only the USER-ADDED images for one topic.
-    user_images is a list of dicts {"path": ..., "content": ...}
-    The hardcoded images/ folder images are NOT stored here — they always load from TOPICS.
-    """
-    data = load_saved_images()
-    data[topic_name] = user_images
-    try:
-        with open(SAVED_IMAGES_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-    except Exception as e:
-        print(f"[save error] {e}")
-
-
-def get_saved_images_for_topic(topic_name: str) -> list:
-    """Return the saved user-added images for a topic (empty list if none)."""
-    data = load_saved_images()
-    return data.get(topic_name, [])
-
-
 # ── Floating Star 
 
 class FloatingStar(QLabel):
@@ -180,7 +134,7 @@ class FloatingStar(QLabel):
         self.move(self.x(), self._base_y + int(7 * math.sin(math.radians(self._angle))))
 
 
-# ── Fade Overlay
+# ── Fade Overlay 
 
 class FadeOverlay(QWidget):
     def __init__(self, parent):
@@ -307,21 +261,13 @@ class TopicButton(QPushButton):
         self._ba.start()
 
 
-# ── Content Page 
+# Content Page 
 
 class ContentPage(QWidget):
     def __init__(self, topic, pal):
         super().__init__()
-        self._pal        = pal
-        self._topic      = topic
-        self._topic_name = topic["name"]
-        self._idx        = 0
-
-       
-        self._default_images = list(topic["images"])          # never removed
-        self._user_images    = get_saved_images_for_topic(self._topic_name)  # persisted
-        # Combined list — single source of truth used by _display()
-        self._images_data    = self._default_images + self._user_images
+        self._images_data = list(topic["images"])
+        self._idx         = 0
 
         self.setStyleSheet(f"ContentPage {{ background: {pal['bg']}; }}")
 
@@ -329,7 +275,7 @@ class ContentPage(QWidget):
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
 
-        # ── Header 
+        # ── Header ────────────────────────────────────────────────────────────
         header = QFrame()
         header.setFixedHeight(64)
         header.setStyleSheet(
@@ -351,7 +297,6 @@ class ContentPage(QWidget):
 
         hlay.addStretch()
 
-        # "Image X / Y" counter
         self._counter_lbl = QLabel("")
         self._counter_lbl.setFont(QFont("Arial", 11, QFont.Bold))
         self._counter_lbl.setAlignment(Qt.AlignVCenter | Qt.AlignRight)
@@ -360,38 +305,6 @@ class ContentPage(QWidget):
             f"background:transparent; color:{pal['ctitle']}; border:none;"
         )
         hlay.addWidget(self._counter_lbl)
-
-        # ＋ Add Photo button
-        add_btn = QPushButton("  ＋  Add Photo")
-        add_btn.setFont(QFont("Arial", 10, QFont.Bold))
-        add_btn.setFixedHeight(36)
-        add_btn.setCursor(Qt.PointingHandCursor)
-        add_btn.setStyleSheet(f"""
-            QPushButton {{
-                background: {pal['btn_on']}; border-radius: 10px;
-                color: #1A0050; border: 2px solid #FFFFFF; padding: 0 16px;
-            }}
-            QPushButton:hover {{ background: #FFFFFF; color: {pal['side']}; border: 2px solid {pal['btn_on']}; }}
-            QPushButton:pressed {{ background: {pal['hover']}; color: #FFFFFF; }}
-        """)
-        add_btn.clicked.connect(self._open_file_picker)
-        hlay.addWidget(add_btn)
-
-        # 🗑 Delete Current Image button
-        del_btn = QPushButton("  🗑  Delete")
-        del_btn.setFont(QFont("Arial", 10, QFont.Bold))
-        del_btn.setFixedHeight(36)
-        del_btn.setCursor(Qt.PointingHandCursor)
-        del_btn.setStyleSheet(f"""
-            QPushButton {{
-                background: #8B0000; border-radius: 10px;
-                color: #FFFFFF; border: 2px solid #FF6666; padding: 0 14px;
-            }}
-            QPushButton:hover {{ background: #FF2222; border: 2px solid #FFFFFF; }}
-            QPushButton:pressed {{ background: #660000; }}
-        """)
-        del_btn.clicked.connect(self._delete_current_image)
-        hlay.addWidget(del_btn)
 
         root.addWidget(header)
 
@@ -483,88 +396,6 @@ class ContentPage(QWidget):
 
         root.addWidget(centre, 1)
 
-    #  ADD PHOTO — opens OS file manager, saves to JSON immediately
-    
-
-    def _open_file_picker(self):
-        files, _ = QFileDialog.getOpenFileNames(
-            self,
-            "Select Photos to Add",
-            os.path.expanduser("~"),
-            "Images (*.jpg *.jpeg *.png *.bmp *.gif *.webp *.tiff *.tif);;"
-            "All Files (*)"
-        )
-        if not files:
-            return
-
-        existing_paths = {img["path"] for img in self._images_data}
-        first_new_idx  = len(self._images_data)
-
-        for f in files:
-            if f not in existing_paths:
-                entry = {"path": f, "content": ""}
-                self._images_data.append(entry)
-                self._user_images.append(entry)   # track user-added separately
-                existing_paths.add(f)
-
-        if len(self._images_data) > first_new_idx:
-            # ── Save immediately so it persists after app restart ─────
-            save_images_for_topic(self._topic_name, self._user_images)
-            self._idx = first_new_idx
-            self._refresh_view()
-
-    # 
-    #  DELETE CURRENT IMAGE — only user-added images can be deleted
-    #  Hardcoded images/ folder images are protected
-    
-
-    def _delete_current_image(self):
-        if not self._images_data:
-            return
-
-        num_defaults = len(self._default_images)
-
-        
-        if self._idx < num_defaults:
-            QMessageBox.information(
-                self,
-                "Cannot Delete",
-                "This is a built-in image and cannot be deleted.\n\n"
-                "Only images you added via '＋ Add Photo' can be deleted."
-            )
-            return
-
-        # Confirm deletion
-        img_name = os.path.basename(self._images_data[self._idx]["path"])
-        reply = QMessageBox.question(
-            self,
-            "Delete Image",
-            f"Remove  \"{img_name}\"  from this topic?\n\n"
-            "This will NOT delete the file from your computer,\n"
-            "only remove it from the app.",
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No
-        )
-        if reply != QMessageBox.Yes:
-            return
-
-        # Remove from both lists
-        removed = self._images_data.pop(self._idx)
-        # Remove from user
-        self._user_images = [
-            img for img in self._user_images
-            if img["path"] != removed["path"]
-        ]
-
-        # ── Save updated list to JSON so deletion persists 
-        save_images_for_topic(self._topic_name, self._user_images)
-
-        # Adjust index so we don't go out of bounds
-        if self._idx >= len(self._images_data):
-            self._idx = max(0, len(self._images_data) - 1)
-
-        self._refresh_view()
-
     # ── Navigation 
 
     def _on_prev(self):
@@ -583,11 +414,10 @@ class ContentPage(QWidget):
         if not self._images_data:
             return
 
-        img_data = self._images_data[self._idx]   # always a dict ✓
+        img_data = self._images_data[self._idx]
         path     = img_data["path"]
         content  = img_data.get("content", "")
 
-        # Show content or filename
         self._desc_lbl.setText(content if content else f"📄  {os.path.basename(path)}")
 
         pix = QPixmap(path)
@@ -611,7 +441,7 @@ class ContentPage(QWidget):
         self._prev_btn.setEnabled(self._idx > 0)
         self._next_btn.setEnabled(self._idx < total - 1)
 
-    # ── Show / hide panels 
+    
 
     def _refresh_view(self):
         has = bool(self._images_data)
@@ -626,9 +456,19 @@ class ContentPage(QWidget):
             self._counter_lbl.setText("")
 
     def show_content(self):
-        """Called by MainWindow when this topic is selected."""
         self._idx = 0
         self._refresh_view()
+
+
+# ── Empty Page 
+
+class EmptyPage(QWidget):
+    def __init__(self, pal):
+        super().__init__()
+        self.setStyleSheet(f"EmptyPage {{ background: {pal['bg']}; }}")
+
+    def show_content(self):
+        pass
 
 
 # ── Welcome Page 
@@ -795,9 +635,7 @@ class MainWindow(QWidget):
 
         placeholder = QWidget()
         placeholder.setStyleSheet(f"background:{SIDEBAR_BG};")
-        ph_lbl = QLabel(
-            
-        )
+        ph_lbl = QLabel("")
         ph_lbl.setFont(QFont("Arial", 13))
         ph_lbl.setAlignment(Qt.AlignCenter)
         ph_lbl.setStyleSheet("color:#C5B8FF; background:transparent;")
@@ -828,9 +666,10 @@ class MainWindow(QWidget):
             b.set_active(False)
         if self._cur >= 0 and self._cur in self._pages:
             page = self._pages[self._cur]
-            page._img_frame.hide()
-            page._content_frame.hide()
-            page._btn_row_widget.hide()
+            if isinstance(page, ContentPage):
+                page._img_frame.hide()
+                page._content_frame.hide()
+                page._btn_row_widget.hide()
         self._cur = -1
         self._eff.setOpacity(0.0)
 
@@ -847,7 +686,10 @@ class MainWindow(QWidget):
         self._plbl.setText(f"Progress: {len(self._visited)} / {len(TOPICS)}")
 
         if index not in self._pages:
-            page = ContentPage(TOPICS[index], STAGE[index])
+            if index in ACTIVE_TOPIC_INDICES:
+                page = ContentPage(TOPICS[index], STAGE[index])
+            else:
+                page = EmptyPage(STAGE[index])
             self._pages[index] = page
             self._stack.addWidget(page)
 
