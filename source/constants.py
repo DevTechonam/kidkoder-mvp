@@ -1,11 +1,12 @@
-# background colors 
+# constants.py
+# Shared colour palettes and background constants used across the app.
+
+
 SIDEBAR_BG = "#12005E"
 BRAND_BG   = "#1E0080"
 WELCOME_BG = "#12005E"
 
-
-
-
+# One palette entry per topic (8 total).  Order must match TOPICS in topics_content.py.
 STAGE = [
     dict(bg="#3B1F8C", side="#2D1870", title="#FFE566", ctitle="#FF94C2",
          body="#E8D5FF", btn_on="#FF94C2", btn_off="#5C3BBF", hover="#7B55D9"),
@@ -24,3 +25,5 @@ STAGE = [
     dict(bg="#006064", side="#004D51", title="#84FFFF", ctitle="#A7FFEB",
          body="#D0FFF8", btn_on="#64FFDA", btn_off="#00838F", hover="#00ACC1"),
 ]
+
+print(f"[constants] Loaded {len(STAGE)} stage palettes.")
