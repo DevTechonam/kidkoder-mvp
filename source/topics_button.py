@@ -115,4 +115,3 @@ class TopicButton(QPushButton):
         self._bounce_anim.start()
 
 
-print("[topics_button] TopicButton ready.")

@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, QPropertyAnimation, QEasingCurve, QTimer
 from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QIcon
 
 from constants      import STAGE, SIDEBAR_BG, BRAND_BG
 from topics_content import *
@@ -18,7 +19,7 @@ from welcome_page   import WelcomePage
 
 
 # Add more indices here as you add content, e.g. {0, 1, 2} for the first 3.
-ACTIVE_TOPIC_INDICES: set = {0, 1}
+ACTIVE_TOPIC_INDICES: set = {0, 1, 2, 3, 4}
 
 
 # ── MainWindow 
@@ -27,7 +28,7 @@ class MainWindow(QWidget):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("🚀 Computer Basics for Kids!")
+        self.setWindowTitle(" Computer Basics for Kids!")
         self.setMinimumSize(980, 620)
         self.resize(1100, 680)
 
@@ -76,15 +77,14 @@ class MainWindow(QWidget):
         sv.setSpacing(5)
 
         # Brand label
-        brand = QLabel("🚀  CS for Kids")
-        brand.setFont(QFont("Arial", 11, QFont.Bold))
-        brand.setAlignment(Qt.AlignCenter)
-        brand.setFixedHeight(38)
-        brand.setStyleSheet(
-            f"color:#FFE566; background:{BRAND_BG}; "
-            "border-radius:10px; border:2px solid #5533CC;"
-        )
-        sv.addWidget(brand)
+        logo = QLabel()
+        pix = QPixmap("images/logo.jpeg")
+
+        logo.setPixmap(pix.scaled(140, 60, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        logo.setAlignment(Qt.AlignCenter)
+        logo.setStyleSheet("background:transparent;")
+
+        sv.addWidget(logo)
 
         # Progress label + bar
         self._plbl = QLabel(f"Progress: 0 / {len(TOPICS)}")
@@ -210,6 +210,7 @@ class MainWindow(QWidget):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    app.setWindowIcon(QIcon("images/logo.jpeg"))
     app.setStyle("Fusion")
     window = MainWindow()
     window.show()

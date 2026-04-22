@@ -26,4 +26,3 @@ STAGE = [
          body="#D0FFF8", btn_on="#64FFDA", btn_off="#00838F", hover="#00ACC1"),
 ]
 
-print(f"[constants] Loaded {len(STAGE)} stage palettes.")

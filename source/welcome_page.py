@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QPixmap
 
 from constants import WELCOME_BG, STAGE
 from content_page   import TOPICS
@@ -17,7 +18,6 @@ print("[welcome_page] Loading WelcomePage...")
 
 
 class WelcomePage(QWidget):
-    """Splash / welcome screen shown on app launch."""
 
     def __init__(self, on_start):
         super().__init__()
@@ -26,11 +26,17 @@ class WelcomePage(QWidget):
         v = QVBoxLayout(self)
         v.setAlignment(Qt.AlignCenter)
         v.setSpacing(16)
+        logo = QLabel()
+        pix = QPixmap("images/logo.jpeg")
+
+        logo.setPixmap(pix.scaled(180, 180, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        logo.setAlignment(Qt.AlignCenter)
+        logo.setStyleSheet("background:transparent;")
+
+        v.addWidget(logo)
 
         # ── Title labels 
         for text, font, color in [
-            ("🚀",
-             QFont("Segoe UI Emoji", 68), "#FFE566"),
             ("Computer Basics",
              QFont("Arial", 34, QFont.Bold), "#FFFFFF"),
             ("for Kids!  🌟",

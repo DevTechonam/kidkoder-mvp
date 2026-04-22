@@ -14,15 +14,11 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QPixmap
 
-print("[content_page] Loading ContentPage / EmptyPage...")
 
-# ── Path template for the per-topic snaps folder ──────────────────────────────
-# Adjust this to match your local directory layout.
-# {tag} is replaced at runtime with the topic's tag string (e.g. "T1", "T2" …)
+
 
 
 def _build_snaps_path(tag):
-    # Get project root (one level up from 'source')
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
     snaps_path = os.path.join(
@@ -39,13 +35,8 @@ def _build_snaps_path(tag):
 
 
 def _load_metadata(snaps_dir: str) -> dict:
-    """
-    Load metadata.json from snaps_dir.
-    Returns an empty dict on any error (missing file, bad JSON, etc.).
-    O(n) where n = number of keys in the JSON — unavoidable for a file read.
-    """
+   
     metadata_path = os.path.join(snaps_dir, "metadata.json")
-    print(f"[_load_metadata] Reading {metadata_path}")
     try:
         with open(metadata_path, "r", encoding="utf-8") as fh:
             data = json.load(fh)
@@ -57,23 +48,24 @@ def _load_metadata(snaps_dir: str) -> dict:
 
 
 def _collect_images_from_disk(snaps_dir: str, metadata: dict) -> list:
-    """
-    Scan snaps_dir for .jpg files and pair each with its metadata content.
-    Returns a list of {"path": str, "content": str} dicts, sorted by filename.
-    Sorting is O(k log k) where k = number of images — acceptable.
-    Falls back to an empty content string when the key is absent in metadata.
-    """
+  
     images = []
+    SUPPORTED_FORMATS = (".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif")
     try:
-        entries = sorted(os.listdir(snaps_dir))   # sorted for deterministic order
+        entries = sorted(os.listdir(snaps_dir))   
     except FileNotFoundError:
         return images
 
     for filename in entries:
-        if not filename.lower().endswith(".jpg"):
+        if not filename.lower().endswith(SUPPORTED_FORMATS):
             continue
-        stem    = Path(filename).stem
-        content = metadata.get(stem, {}).get("content", "")
+        stem = Path(filename).stem
+
+        if stem not in metadata:
+            print(f"[_collect_images_from_disk] Skipping {filename} (not in metadata)")
+            continue
+
+        content = metadata[stem].get("content", "")
         full_path = os.path.join(snaps_dir, filename)
         images.append({"path": full_path, "content": content})
         print(f"[_collect_images_from_disk]   + {filename}")
@@ -82,14 +74,10 @@ def _collect_images_from_disk(snaps_dir: str, metadata: dict) -> list:
     return images
 
 
-# ── ContentPage ───────────────────────────────────────────────────────────────
+# ── ContentPage 
 
 class ContentPage(QWidget):
-    """
-    Full-featured topic page:
-      1. Tries to load images from the snaps/ folder on disk.
-      2. Falls back to the hardcoded 'images' list in the topic dict.
-    """
+   
 
     def __init__(self, topic: dict, pal: dict):
         super().__init__()
@@ -107,13 +95,10 @@ class ContentPage(QWidget):
         root.addWidget(self._build_header(topic, pal))
         root.addWidget(self._build_centre(pal), 1)
 
-    # ── Image resolution (disk → fallback) ───────────────────────────────────
+    # ── Image resolution (disk → fallback) 
 
     def _resolve_images(self, topic: dict) -> list:
-        """
-        Try disk first; fall back to topic['images'] if disk returns nothing.
-        O(k log k) for sorting disk files; O(1) for fallback list copy.
-        """
+      
         tag = topic.get("tag", "")
         if tag:
             snaps_dir = _build_snaps_path(tag)
@@ -126,11 +111,11 @@ class ContentPage(QWidget):
         fallback = list(topic.get("images", []))
         return fallback
 
-    # ── UI builders ───────────────────────────────────────────────────────────
+    # ── UI builders 
 
     def _build_header(self, topic: dict, pal: dict) -> QFrame:
         header = QFrame()
-        header.setFixedHeight(64)
+        header.setFixedHeight(80)
         header.setStyleSheet(
             f"background:{pal['side']}; border-bottom: 3px solid {pal['btn_on']};"
         )
@@ -146,18 +131,19 @@ class ContentPage(QWidget):
         title = QLabel(topic["name"])
         title.setFont(QFont("Arial", 18, QFont.Bold))
         title.setStyleSheet(f"background:transparent; color:{pal['title']};")
+
         hlay.addWidget(title)
 
         hlay.addStretch()
 
-        self._counter_lbl = QLabel("")
+        ''' self._counter_lbl = QLabel("")
         self._counter_lbl.setFont(QFont("Arial", 11, QFont.Bold))
         self._counter_lbl.setAlignment(Qt.AlignVCenter | Qt.AlignRight)
         self._counter_lbl.setMinimumWidth(110)
         self._counter_lbl.setStyleSheet(
             f"background:transparent; color:{pal['ctitle']}; border:none;"
         )
-        hlay.addWidget(self._counter_lbl)
+        hlay.addWidget(self._counter_lbl)'''
 
         return header
 
@@ -171,14 +157,14 @@ class ContentPage(QWidget):
 
         # Image frame
         self._img_frame = QFrame()
-        self._img_frame.setFixedSize(1200, 580)
+        self._img_frame.setFixedSize(1200, 650)
         self._img_frame.setStyleSheet(
             f"QFrame {{ background:{pal['side']}; border-radius:22px; "
             f"border: 4px solid {pal['btn_on']}; }}"
         )
         self._img_frame.hide()
         ifl = QVBoxLayout(self._img_frame)
-        ifl.setContentsMargins(12, 12, 12, 12)
+        ifl.setContentsMargins(0,0,0,0)
 
         self._img_lbl = QLabel()
         self._img_lbl.setAlignment(Qt.AlignCenter)
@@ -188,7 +174,7 @@ class ContentPage(QWidget):
         cv.addWidget(self._img_frame, alignment=Qt.AlignHCenter)
 
         # Description frame
-        self._content_frame = QFrame()
+        '''self._content_frame = QFrame()
         self._content_frame.setStyleSheet(
             f"QFrame {{ background:{pal['side']}; border-radius:14px; "
             f"border: 2px solid {pal['btn_on']}; }}"
@@ -206,7 +192,7 @@ class ContentPage(QWidget):
             f"color:{pal['body']}; background:transparent; border:none;"
         )
         cfl.addWidget(self._desc_lbl)
-        cv.addWidget(self._content_frame, alignment=Qt.AlignHCenter)
+        cv.addWidget(self._content_frame, alignment=Qt.AlignHCenter)'''
 
         # Nav buttons
         nav_style = f"""
@@ -249,7 +235,7 @@ class ContentPage(QWidget):
 
         return centre
 
-    # ── Navigation ────────────────────────────────────────────────────────────
+    # ── Navigation 
 
     def _on_prev(self):
         if self._idx > 0:
@@ -261,18 +247,17 @@ class ContentPage(QWidget):
             self._idx += 1
             self._display()
 
-    # ── Rendering ─────────────────────────────────────────────────────────────
+    # ── Rendering 
 
     def _display(self):
-        """Render the image at self._idx.  O(1) — just index lookup + pixmap scale."""
         if not self._images_data:
             return
 
         img   = self._images_data[self._idx]
         path  = img["path"]
-        text  = img.get("content", "") or f"📄  {os.path.basename(path)}"
+        #text  = img.get("content", "") or f"📄  {os.path.basename(path)}"
 
-        self._desc_lbl.setText(text)
+        #self._desc_lbl.setText(text)
 
         pix = QPixmap(path)
         if pix.isNull():
@@ -291,15 +276,14 @@ class ContentPage(QWidget):
             )
 
         total = len(self._images_data)
-        self._counter_lbl.setText(f"Image {self._idx + 1} / {total}")
+        #self._counter_lbl.setText(f"Image {self._idx + 1} / {total}")
         self._prev_btn.setEnabled(self._idx > 0)
         self._next_btn.setEnabled(self._idx < total - 1)
 
     def _refresh_view(self):
-        """Show or hide the whole content area depending on whether images exist."""
         has = bool(self._images_data)
         self._img_frame.setVisible(has)
-        self._content_frame.setVisible(has)
+        #self._content_frame.setVisible(has)
         self._btn_row_widget.setVisible(has)
         self._prev_btn.setVisible(has)
         self._next_btn.setVisible(has)
@@ -309,15 +293,13 @@ class ContentPage(QWidget):
             self._counter_lbl.setText("")
 
     def show_content(self):
-        """Called by MainWindow after the topic tab is selected."""
         self._idx = 0
         self._refresh_view()
 
 
-# ── EmptyPage ─────────────────────────────────────────────────────────────────
+# ── EmptyPage 
 
 class EmptyPage(QWidget):
-    """Placeholder page for topics that are not yet activated — shows nothing."""
 
     def __init__(self, pal: dict):
         super().__init__()
